@@ -1,0 +1,39 @@
+version: '3.7'
+
+services:
+  mysql:
+    image: mysql
+    # command: "tail -f /dev/null"
+    command: --default-authentication-plugin=mysql_native_password
+    volumes:
+      - ./db/data:/var/lib/mysql
+      - ./dump:/docker-entrypoint-initdb.d
+      - ./db/conf.d:/etc/mysql/conf.d # https://32imuf.com/docker/create-django-env-with-docker-compose-mysql-2/
+    environment:
+      MYSQL_ROOT_PASSWORD: "password"
+      MYSQL_DATABASE: "drupal"
+    ports:
+      - "3306:3306"
+
+  drupal:
+    build: ./
+    volumes:
+      - ./web/themes:/var/www/html/themes
+      - ./web/modules:/var/www/html/modules
+      - ./web/sites:/var/www/html/sites
+      - ./web/core:/var/www/html/core
+      - ./web/profiles:/var/www/html/profiles
+      - ./config:/opt/drupal/config
+      - ./composer.json:/opt/drupal/composer.json
+      - ./composer.lock:/opt/drupal/composer.lock
+    ports:
+      - "80:80"
+    depends_on:
+      - mysql
+  # WSLで次の問題が起きた場合、マウント権限問題なので、コマンドプロンプトで一時的にやると解決する
+  # [ERROR] [MY-010295] [Server] Could not set file permission for private_key.pem
+  # https://github.com/docker-library/mysql/issues/302
+
+# networks:
+# デフォルトでできるはずのネットワークができないことがあるので、以下で作成
+# $ docker network create --driver bridge drupal-sandbox_default
